@@ -2,6 +2,7 @@ import express from 'express';
 
 const PORT = 3000;
 const app = express();
+app.use(express.static('public'));
 
 app.get('/api/powitanie', (req, res) => {
   res.send('Witaj z Expressa!');
