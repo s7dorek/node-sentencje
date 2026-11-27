@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <title>Żądania do serwera</title>
+</head>
+<body>
+  <h1>Żądania do serwera</h1>
+  <p>
+    <button>/api/powitanie</button>
+    <button>/api/sentencje</button>
+    <button>/api/sentencje/0</button>
+    <button>/api/sentencje/999</button>
+    <button>/nie-ma</button>
+    <button>/api/losowa</button>
+  </p>
+  <pre id="wynik">Kliknij przycisk.</pre>
+
+  <script>
+    const wynik = document.querySelector('#wynik');
+
+    async function wyslij(adres) {
+      const punkt1 = `1. przeglądarka: wysłano żądanie GET ${adres}\n`;
+      wynik.textContent = punkt1;
+      const odpowiedz = await fetch(adres, { cache: 'no-store' });
+      const status = odpowiedz.status;
+      const tresc = await odpowiedz.text();
+      wynik.textContent = punkt1
+        + `4. przeglądarka: odebrano odpowiedź, status ${status}\n\n${tresc}`;
+    }
+
+    for (const przycisk of document.querySelectorAll('button')) {
+      przycisk.addEventListener('click', () => wyslij(przycisk.textContent));
+    }
+  </script>
+</body>
+</html>

@@ -1,62 +1,25 @@
-import http from 'node:http';
-import fs from 'node:fs/promises';
-import path from 'node:path';
-import { Worker } from 'node:worker_threads';
+import express from 'express';
+import { sledzenie } from './lib/sledzenie.js';
+import trasy from './lib/trasy.js';
 
 const PORT = 3000;
+const app = express();
 
-function raportWWatku(ms) {
-  return new Promise((resolve, reject) => {
-    const plik = path.join(import.meta.dirname, 'raport-worker.js');
-    const watek = new Worker(plik, { workerData: { ms } });
-    watek.once('message', resolve);
-    watek.once('error', reject);
-  });
-}
+app.use(express.static('public'));
+app.use(sledzenie);
+app.use(trasy);
 
-function wyslij(res, status, tresc, typ = 'text/plain') {
-  res.writeHead(status, { 'Content-Type': `${typ}; charset=utf-8` });
-  res.end(tresc);
-}
+const server = app.listen(PORT);
 
-function czekaj(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-async function zbudujStrone() {
-  const [json, szablon] = await Promise.all([
-    fs.readFile('dane/sentencje.json', 'utf8'),
-    fs.readFile('szablony/strona.html', 'utf8'),
-  ]);
-  const sentencje = JSON.parse(json);
-  const lista = sentencje.map((s) => `    <li>${s}</li>`).join('\n');
-  return szablon.replace('{{LISTA}}', lista);
-}
-
-const server = http.createServer(async (req, res) => {
-  console.log(new Date().toLocaleTimeString('pl-PL'), req.method, req.url);
-
-  if (req.url === '/') {
-    try {
-      wyslij(res, 200, await zbudujStrone(), 'text/html');
-    } catch (err) {
-      console.error(err);
-      wyslij(res, 500, 'Błąd serwera');
-    }
-  } else if (req.url === '/raport') {
-    const koniec = Date.now() + 5000;
-    while (Date.now() < koniec) {}          // 5 s pracy procesora
-    wyslij(res, 200, 'Raport gotowy (pętla while – 5 s pracy procesora)');
-  } else if (req.url === '/czekaj') {
-    await czekaj(5000);                     // 5 s czekania na timer
-    wyslij(res, 200, 'Gotowe (setTimeout – 5 s czekania)');
-  } else if (req.url === '/raport-watek') {
-    wyslij(res, 200, String(await raportWWatku(5000)));
-  } else {
-    wyslij(res, 404, `Nie znaleziono: ${req.url}`);
-  }
+server.on('listening', () => {
+  console.log(`Serwer działa: http://localhost:${PORT}/`);
 });
 
-server.listen(PORT, () => {
-  console.log(`Serwer działa: http://localhost:${PORT}/`);
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`Port ${PORT} jest zajęty – serwer działa już w innym terminalu?`);
+  } else {
+    console.error(err);
+  }
+  process.exit(1);
 });
