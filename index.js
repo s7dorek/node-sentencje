@@ -11,6 +11,14 @@ async function wczytajSentencje() {
 
 app.use(express.static('public'));
 
+app.use((req, res, next) => {
+  console.log(`2. serwer: przyszło żądanie ${req.method} ${req.url}`);
+  res.on('finish', () => {
+    console.log(`3. serwer: odpowiedź wysłana, status ${res.statusCode}`);
+  });
+  next();
+});
+
 app.get('/api/powitanie', (req, res) => {
   res.send('Witaj z Expressa!');
 });
